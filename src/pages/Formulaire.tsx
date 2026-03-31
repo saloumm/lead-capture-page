@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,30 +11,84 @@ import { toast } from "sonner";
 
 const Formulaire = () => {
   const [form, setForm] = useState({
-    prenom: "",
-    nom: "",
-    email: "",
-    telephone: "",
-    domaine: "",
-    type: "",
-    pays: "",
-    siteWeb: "",
-    description: "",
-  });
+  prenom: "",
+  nom: "",
+  email: "",
+  telephone: "",
+  domaine: "",
+  type: "",
+  pays: "",
+  siteWeb: "",
+  description: "",
+  leadSource: "",
+});
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const utmSource = params.get("utm_source");
 
+  if (utmSource) {
+    localStorage.setItem("utm_source", utmSource);
+  }
+
+  setForm((prev) => ({
+    ...prev,
+    leadSource: localStorage.getItem("utm_source") || "direct",
+  }));
+}, []);
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.prenom || !form.nom || !form.email || !form.telephone || !form.domaine || !form.type || !form.description) {
-      toast.error("Veuillez remplir tous les champs obligatoires.");
-      return;
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (
+    !form.prenom ||
+    !form.nom ||
+    !form.email ||
+    !form.telephone ||
+    !form.domaine ||
+    !form.type ||
+    !form.description
+  ) {
+    toast.error("Veuillez remplir tous les champs obligatoires.");
+    return;
+  }
+
+  try {
+    const payload = {
+      prenom: form.prenom,
+      nom: form.nom,
+      email: form.email,
+      telephone: form.telephone,
+      domaine: form.domaine,
+      typeOrganisation: form.type,
+      pays: form.pays,
+      siteWeb: form.siteWeb,
+      description: form.description,
+      leadSource: form.leadSource,
+    };
+
+    console.log("Sending:", payload);
+
+    const response = await fetch("http://localhost:5000/api/requests", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error("Erreur serveur");
     }
+
     toast.success("Formulaire envoyé avec succès !");
-    console.log("Form data:", form);
-  };
+  } catch (error) {
+    console.error(error);
+    toast.error("Erreur lors de l'envoi.");
+  }
+};
 
   return (
     <div className="min-h-screen bg-background text-foreground">
